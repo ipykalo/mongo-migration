@@ -1,10 +1,13 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "module": "NodeNext", // Required for ES Modules in Node
+    "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "strict": true
-  }
+  },
+  "include": ["**/*.ts", "src/validate-migration.ts"]
 }

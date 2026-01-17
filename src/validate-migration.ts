@@ -22,9 +22,16 @@ async function setupSchemas(db: Db, schemasDir: string) {
       fs.readFileSync(path.join(schemasDir, file), "utf8"),
     );
 
+    // Drop it if it exists to ensure a fresh schema apply
+    const collections = await db.listCollections({ name: colName }).toArray();
+    if (collections.length > 0) {
+      await db.collection(colName).drop();
+    }
+
     await db.createCollection(colName, {
       validator: schema,
       validationLevel: "strict",
+      validationAction: "error", // This ensures it throws an error, not just a warning
     });
   }
 
@@ -69,13 +76,18 @@ async function executeMigration(db: Db, filePath: string) {
   const scriptContent = fs.readFileSync(path.resolve(filePath), "utf8");
 
   const context = vm.createContext({
-    db: db,
-    console: console,
+    db,
+    //console,
     print: console.log,
   });
 
-  const script = new vm.Script(`(async () => { ${scriptContent} })()`);
-  await script.runInContext(context);
+  try {
+    // We MUST await the execution here
+    await vm.runInContext(scriptContent, context);
+  } catch (migrationError: any) {
+    // Re-throw so the main 'validate' function catches it and exits with code 1
+    throw migrationError;
+  }
 }
 
 /**
@@ -108,10 +120,11 @@ async function validate() {
   } catch (error: any) {
     console.error("❌ VALIDATION FAILED");
     console.error(`Reason: ${error.message}`);
-    process.exit(1);
+    console.dir(error);
   } finally {
     await client.close();
     await mongod.stop();
+    process.exit(1);
   }
 }
 
