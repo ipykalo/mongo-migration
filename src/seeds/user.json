@@ -1,0 +1,12 @@
+[
+  {
+    "username": "jdoe_92",
+    "status": "active",
+    "dob": { "age": 33, "year": 1992 }
+  },
+  {
+    "username": "pending_user",
+    "status": "pending",
+    "dob": { "age": 20, "year": 2005 }
+  }
+]

@@ -1,13 +1,14 @@
 {
   "name": "mongo-migration",
   "version": "1.0.0",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "prepare": "husky install"
   },
   "lint-staged": {
-    "scripts/*.js": "npx ts-node validate-migration.ts"
+    "scripts/*.js": "node --loader ts-node/esm validate-migration.ts"
   },
   "repository": {
     "type": "git",
@@ -22,6 +23,7 @@
   "homepage": "https://github.com/ipykalo/mongo-migration#readme",
   "description": "",
   "devDependencies": {
+    "@types/node": "^25.0.9",
     "husky": "^8.0.0",
     "lint-staged": "^16.2.7",
     "mongodb": "^7.0.0",

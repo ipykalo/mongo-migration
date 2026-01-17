@@ -1,0 +1,8 @@
+[
+  {
+    "orderId": "ORD-1001",
+    "total": 59.99,
+    "createdAt": { "$date": "2023-10-01T10:00:00Z" },
+    "isPaid": true
+  }
+]

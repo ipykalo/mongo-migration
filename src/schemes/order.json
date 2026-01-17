@@ -1,0 +1,18 @@
+{
+  "$jsonSchema": {
+    "bsonType": "object",
+    "required": ["orderId", "total", "createdAt"],
+    "properties": {
+      "orderId": { "bsonType": "string" },
+      "total": {
+        "bsonType": "double",
+        "description": "must be a floating point number"
+      },
+      "createdAt": {
+        "bsonType": "date",
+        "description": "must be a BSON date object"
+      },
+      "isPaid": { "bsonType": "bool" }
+    }
+  }
+}

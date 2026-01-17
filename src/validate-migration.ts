@@ -1,0 +1,118 @@
+import { MongoMemoryServer } from "mongodb-memory-server";
+import { MongoClient, Db } from "mongodb";
+import * as fs from "fs";
+import * as path from "path";
+import * as vm from "vm";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+/**
+ * PHASE 1: Initialize Collections and Apply Schemas
+ */
+async function setupSchemas(db: Db, schemasDir: string) {
+  const schemaFiles = fs
+    .readdirSync(schemasDir)
+    .filter((f) => f.endsWith(".json"));
+
+  for (const file of schemaFiles) {
+    const colName = path.parse(file).name;
+    const schema = JSON.parse(
+      fs.readFileSync(path.join(schemasDir, file), "utf8"),
+    );
+
+    await db.createCollection(colName, {
+      validator: schema,
+      validationLevel: "strict",
+    });
+  }
+
+  console.log(
+    `🛠  Schemas applied: ${schemaFiles.length} collections created.`,
+  );
+}
+
+/**
+ * PHASE 2: Load Seed Data into Collections
+ */
+async function seedDatabase(db: Db, seedsDir: string) {
+  if (!fs.existsSync(seedsDir)) return;
+
+  const seedFiles = fs.readdirSync(seedsDir).filter((f) => f.endsWith(".json"));
+
+  for (const file of seedFiles) {
+    const colName = path.parse(file).name;
+    let data = JSON.parse(fs.readFileSync(path.join(seedsDir, file), "utf8"));
+
+    // Handle BSON Date conversion
+    const processedData = data.map((doc: any) => {
+      if (doc.createdAt && doc.createdAt.$date) {
+        return { ...doc, createdAt: new Date(doc.createdAt.$date) };
+      }
+      return doc;
+    });
+
+    if (processedData.length > 0) {
+      await db.collection(colName).insertMany(processedData);
+      console.log(
+        `   🌱 Seeded ${processedData.length} docs into '${colName}'`,
+      );
+    }
+  }
+}
+
+/**
+ * PHASE 3: Execute the Migration Script in a Sandbox
+ */
+async function executeMigration(db: Db, filePath: string) {
+  const scriptContent = fs.readFileSync(path.resolve(filePath), "utf8");
+
+  const context = vm.createContext({
+    db: db,
+    console: console,
+    print: console.log,
+  });
+
+  const script = new vm.Script(`(async () => { ${scriptContent} })()`);
+  await script.runInContext(context);
+}
+
+/**
+ * MAIN ORCHESTRATOR
+ */
+async function validate() {
+  const stagedFiles = process.argv.slice(2);
+  if (stagedFiles.length === 0) return;
+
+  const mongod = await MongoMemoryServer.create();
+  const client = new MongoClient(mongod.getUri());
+
+  try {
+    await client.connect();
+    const testDb = client.db("validation_db");
+
+    // 1. Setup
+    await setupSchemas(testDb, path.join(__dirname, "schemas"));
+
+    // 2. Seed
+    await seedDatabase(testDb, path.join(__dirname, "seeds"));
+
+    // 3. Migrate
+    for (const filePath of stagedFiles) {
+      console.log(`🚀 Testing: ${path.basename(filePath)}`);
+      await executeMigration(testDb, filePath);
+    }
+
+    console.log("✅ All migrations passed validation!");
+  } catch (error: any) {
+    console.error("❌ VALIDATION FAILED");
+    console.error(`Reason: ${error.message}`);
+    process.exit(1);
+  } finally {
+    await client.close();
+    await mongod.stop();
+  }
+}
+
+validate();

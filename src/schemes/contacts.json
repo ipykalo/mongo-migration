@@ -1,0 +1,19 @@
+{
+  "$jsonSchema": {
+    "bsonType": "object",
+    "required": ["name", "email"],
+    "properties": {
+      "name": { "bsonType": "string" },
+      "email": {
+        "bsonType": "string",
+        "pattern": "^.+@.+$",
+        "description": "must be a valid email format"
+      },
+      "tags": {
+        "bsonType": "array",
+        "items": { "bsonType": "string" },
+        "description": "must be an array of strings"
+      }
+    }
+  }
+}

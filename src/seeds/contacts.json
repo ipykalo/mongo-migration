@@ -1,0 +1,12 @@
+[
+  {
+    "name": "Alice Smith",
+    "email": "alice@example.com",
+    "tags": ["friend", "work"]
+  },
+  {
+    "name": "Bob Jones",
+    "email": "bob@provider.net",
+    "tags": ["family"]
+  }
+]
