@@ -1,31 +1,24 @@
 (async function () {
-  const users = [];
-  const statuses = ["active", "suspended", "pending"];
-
-  console.log("Generating 10 random users...");
-
-  for (let i = 0; i < 10; i++) {
-    const randomAge = Math.floor(Math.random() * (60 - 18 + 1)) + 18;
-    const currentYear = new Date().getFullYear();
-    const birthYear = currentYear - randomAge;
-
-    users.push({
-      username: `user_${Math.random().toString(36).substring(7)}`,
-      status: statuses[Math.floor(Math.random() * statuses.length)],
-      dob: {
-        age: randomAge.toString(),
-        year: Number.parseInt(birthYear.toString()),
-      },
-    });
-  }
+  console.log("🚀 Running a DELIBERATELY BROKEN migration...");
 
   try {
-    const result = await db.collection("user").insertMany(users);
-    console.log(`✅ Successfully inserted ${result.insertedCount} users.`);
+    // This will fail because:
+    // 1. "age" is a STRING "30", but the schema requires an INT.
+    // 2. "status" is "offline", but the schema enum only allows ["active", "suspended", "pending"].
+    await db.collection("user").insertOne({
+      username: "broken_user",
+      status: "offline",
+      dob: {
+        age: "30",
+        year: 1994,
+      },
+    });
+
+    console.log("❌ If you see this, validation FAILED to catch the error!");
   } catch (error) {
-    console.error("❌ Migration failed validation check:");
-    console.error(error.message);
-    // Throwing here will stop the validator and block the Git commit
+    console.log("✅ Successfully caught the validation error as expected.");
+    // We re-throw the error so the validator exits with code 1
+    // and Husky blocks the git commit.
     throw error;
   }
 })();
