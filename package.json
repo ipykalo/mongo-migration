@@ -1,0 +1,32 @@
+{
+  "name": "mongo-migration",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "husky install"
+  },
+  "lint-staged": {
+    "scripts/*.js": "npx ts-node validate-migration.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ipykalo/mongo-migration.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ipykalo/mongo-migration/issues"
+  },
+  "homepage": "https://github.com/ipykalo/mongo-migration#readme",
+  "description": "",
+  "devDependencies": {
+    "husky": "^8.0.0",
+    "lint-staged": "^16.2.7",
+    "mongodb": "^7.0.0",
+    "mongodb-memory-server": "^11.0.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
