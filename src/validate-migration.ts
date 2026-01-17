@@ -82,8 +82,11 @@ async function executeMigration(db: Db, filePath: string) {
   });
 
   try {
-    // We MUST await the execution here
-    await vm.runInContext(scriptContent, context);
+    // We execute the script. If it's an async IIFE, it returns a Promise.
+    const result = vm.runInContext(scriptContent, context);
+
+    // We await the result in case the script returned a Promise
+    await result;
   } catch (migrationError: any) {
     // Re-throw so the main 'validate' function catches it and exits with code 1
     throw migrationError;
@@ -99,6 +102,8 @@ async function validate() {
 
   const mongod = await MongoMemoryServer.create();
   const client = new MongoClient(mongod.getUri());
+
+  let hasError = false; // 1. Track the state
 
   try {
     await client.connect();
@@ -118,13 +123,21 @@ async function validate() {
 
     console.log("✅ All migrations passed validation!");
   } catch (error: any) {
-    console.error("❌ VALIDATION FAILED");
-    console.error(`Reason: ${error.message}`);
-    console.dir(error);
+    console.error("❌ VALIDATION FAILED:", error.message);
+    hasError = true; // 2. Mark as failed if an error occurs
   } finally {
+    // 3. Clean up the database FIRST
     await client.close();
     await mongod.stop();
-    process.exit(1);
+
+    // 4. Exit with the correct code based on success or failure
+    if (hasError) {
+      console.log("🚫 Blocking commit due to errors.");
+      process.exit(1);
+    } else {
+      console.log("✅ Validation complete. Proceeding with commit.");
+      process.exit(0);
+    }
   }
 }
 

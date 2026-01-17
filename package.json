@@ -8,7 +8,7 @@
     "prepare": "husky install"
   },
   "lint-staged": {
-    "scripts/*.js": "npx tsx validate-migration.ts"
+    "src/scripts/*.js": "npx tsx ./src/validate-migration.ts"
   },
   "repository": {
     "type": "git",
