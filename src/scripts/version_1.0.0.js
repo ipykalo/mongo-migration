@@ -7,9 +7,9 @@
     // 2. "status" is "offline", but the schema enum only allows ["active", "suspended", "pending"].
     await db.collection("user").insertOne({
       username: "broken_user",
-      status: "offline",
+      status: "activew",
       dob: {
-        age: "30",
+        age: 20,
         year: 1994,
       },
     });
