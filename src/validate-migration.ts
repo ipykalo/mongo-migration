@@ -40,6 +40,17 @@ async function setupSchemas(db: Db, schemasDir: string) {
   );
 }
 
+function convertBsonDates(value: any): any {
+  if (Array.isArray(value)) return value.map(convertBsonDates);
+  if (value !== null && typeof value === "object") {
+    if ("$date" in value) return new Date(value.$date);
+    return Object.fromEntries(
+      Object.entries(value).map(([k, v]) => [k, convertBsonDates(v)])
+    );
+  }
+  return value;
+}
+
 /**
  * PHASE 2: Load Seed Data into Collections
  */
@@ -50,15 +61,8 @@ async function seedDatabase(db: Db, seedsDir: string) {
 
   for (const file of seedFiles) {
     const colName = path.parse(file).name;
-    let data = JSON.parse(fs.readFileSync(path.join(seedsDir, file), "utf8"));
-
-    // Handle BSON Date conversion
-    const processedData = data.map((doc: any) => {
-      if (doc.createdAt && doc.createdAt.$date) {
-        return { ...doc, createdAt: new Date(doc.createdAt.$date) };
-      }
-      return doc;
-    });
+    const data = JSON.parse(fs.readFileSync(path.join(seedsDir, file), "utf8"));
+    const processedData = convertBsonDates(data);
 
     if (processedData.length > 0) {
       await db.collection(colName).insertMany(processedData);
@@ -77,20 +81,12 @@ async function executeMigration(db: Db, filePath: string) {
 
   const context = vm.createContext({
     db,
-    //console,
+    console,
     print: console.log,
   });
 
-  try {
-    // We execute the script. If it's an async IIFE, it returns a Promise.
-    const result = vm.runInContext(scriptContent, context);
-
-    // We await the result in case the script returned a Promise
-    await result;
-  } catch (migrationError: any) {
-    // Re-throw so the main 'validate' function catches it and exits with code 1
-    throw migrationError;
-  }
+  const result = vm.runInContext(scriptContent, context);
+  await result;
 }
 
 /**
@@ -109,15 +105,13 @@ async function validate() {
     await client.connect();
     const testDb = client.db("validation_db");
 
-    // 1. Setup
-    await setupSchemas(testDb, path.join(__dirname, "schemas"));
+    const schemasDir = path.join(__dirname, "schemas");
+    const seedsDir = path.join(__dirname, "seeds");
 
-    // 2. Seed
-    await seedDatabase(testDb, path.join(__dirname, "seeds"));
-
-    // 3. Migrate
     for (const filePath of stagedFiles) {
       console.log(`🚀 Testing: ${path.basename(filePath)}`);
+      await setupSchemas(testDb, schemasDir);
+      await seedDatabase(testDb, seedsDir);
       await executeMigration(testDb, filePath);
     }
 
